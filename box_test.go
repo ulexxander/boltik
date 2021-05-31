@@ -52,39 +52,39 @@ func TestNested(t *testing.T) {
 	bf := NewBoxFactory(bdb, nil)
 
 	tt := []struct {
-		bucket []byte
-		k      []byte
-		k2     []byte
-		v      []byte
+		box []byte
+		k   []byte
+		k2  []byte
+		v   []byte
 	}{
 		{
-			bucket: []byte("parentt"),
-			k:      []byte("k1"),
-			v:      []byte("vvv1"),
+			box: []byte("parentt"),
+			k:   []byte("k1"),
+			v:   []byte("vvv1"),
 		},
 		{
-			bucket: []byte("middle"),
-			k:      []byte("k2"),
-			k2:     []byte("k1"), // key of root
-			v:      []byte("v2"),
+			box: []byte("middle"),
+			k:   []byte("k2"),
+			k2:  []byte("k1"), // key of root
+			v:   []byte("v2"),
 		},
 		{
-			bucket: []byte("chiil"),
-			k:      []byte("k3"),
-			k2:     []byte("k2"), // parent key
-			v:      []byte("v3123"),
+			box: []byte("chiil"),
+			k:   []byte("k3"),
+			k2:  []byte("k2"), // parent key
+			v:   []byte("v3123"),
 		},
 		{
-			bucket: []byte("uu_deeep"),
-			k:      []byte("k4"),
-			k2:     []byte("k1"), // key of root
-			v:      []byte("v4asdfaslkd"),
+			box: []byte("uu_deeep"),
+			k:   []byte("k4"),
+			k2:  []byte("k1"), // key of root
+			v:   []byte("v4asdfaslkd"),
 		},
 	}
 
 	var b *Box
 	for _, item := range tt {
-		b = bf(item.bucket)
+		b = bf(item.box)
 
 		ne := b.Get([]byte("not_exists"))
 		r.Nil(ne)
@@ -262,5 +262,66 @@ func TestPrefixScan(t *testing.T) {
 
 		scanned := b.PrefixScan(p1)
 		r.Equalf(tc.e, scanned, "on %d", i)
+	}
+}
+
+func TestDeleteReturning(t *testing.T) {
+	r := require.New(t)
+	bf, err := makeFactory(t, NewCodecJSON())
+	r.NoError(err)
+
+	tt := []struct {
+		box []byte
+		k   []byte
+		v   []byte
+		ve  map[string]string
+	}{
+		{
+			box: []byte("first_delete_returning"),
+			k:   []byte("help"),
+			v:   []byte("no"),
+		},
+		{
+			box: []byte("second_delete_returning"),
+			k:   []byte("another"),
+			ve: map[string]string{
+				"yo":  "how r u",
+				"iam": "good",
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		b := bf(tc.box)
+
+		err := b.Put([]byte("nothing"), []byte("nothing"))
+		r.NoError(err)
+
+		err = b.Delete([]byte("no key"))
+		r.NoError(err)
+
+		data, err := b.DeleteReturning([]byte("no key"))
+		r.NoError(err)
+		r.Nil(data)
+
+		if tc.v != nil {
+			err := b.Put(tc.k, tc.v)
+			r.NoError(err)
+
+			ret1, err := b.DeleteReturning(tc.k)
+			r.NoError(err)
+			r.Equal(tc.v, ret1)
+			return
+		}
+
+		if tc.ve != nil {
+			err := b.PutEncoded(tc.k, tc.ve)
+			r.NoError(err)
+
+			var res map[string]string
+			err = b.DeleteReturningDecoded(tc.k, &res)
+			r.NoError(err)
+			r.Equal(tc.ve, res)
+		}
 	}
 }
