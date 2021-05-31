@@ -180,6 +180,7 @@ func (b *Box) Nested(name []byte) *Box {
 		parent: b,
 		db:     b.db,
 		name:   name,
+		codec:  b.codec,
 	}
 }
 
