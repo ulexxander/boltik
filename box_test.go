@@ -8,30 +8,27 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-func makeBolt(t *testing.T) (*bbolt.DB, error) {
+func makeBolt(t *testing.T) *bbolt.DB {
 	dbf := fmt.Sprintf("%s/db.bolt", t.TempDir())
-	return bbolt.Open(dbf, 0700, bbolt.DefaultOptions)
+	bdb, err := bbolt.Open(dbf, 0700, bbolt.DefaultOptions)
+	require.NoError(t, err)
+	return bdb
 }
 
-func makeFactory(t *testing.T, codec Codec) (func(name []byte) *Box, error) {
-	bdb, err := makeBolt(t)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewBoxFactory(bdb, codec), nil
+func makeFactory(t *testing.T, codec Codec) func(name []byte) *Box {
+	bdb := makeBolt(t)
+	return NewBoxFactory(bdb, codec)
 }
 
 func TestBasic(t *testing.T) {
 	r := require.New(t)
-	bdb, err := makeBolt(t)
-	r.NoError(err)
+	bdb := makeBolt(t)
 
 	b := NewBox(bdb, []byte("b1"), nil)
 
 	k := []byte("hello")
 	v := []byte("true")
-	err = b.Put(k, v)
+	err := b.Put(k, v)
 	r.NoError(err)
 
 	gotv := b.Get(k)
@@ -46,8 +43,7 @@ func TestBasic(t *testing.T) {
 
 func TestNested(t *testing.T) {
 	r := require.New(t)
-	bdb, err := makeBolt(t)
-	r.NoError(err)
+	bdb := makeBolt(t)
 
 	bf := NewBoxFactory(bdb, nil)
 
@@ -105,8 +101,7 @@ func TestNested(t *testing.T) {
 
 func TestWithCodec(t *testing.T) {
 	r := require.New(t)
-	bdb, err := makeBolt(t)
-	r.NoError(err)
+	bdb := makeBolt(t)
 
 	b := NewBox(bdb, []byte("with_codec"), NewCodecJSON())
 	k := []byte("k_k_k")
@@ -115,6 +110,15 @@ func TestWithCodec(t *testing.T) {
 		"second": 20,
 		"third":  100500,
 	}
+
+	var nothing map[string]int
+	err := b.GetDecoded(k, &nothing)
+	r.Error(err)
+
+	var allnothing []map[string]int
+	err = b.GetAllDecoded(&allnothing)
+	r.Nil(allnothing)
+	r.NoError(err)
 
 	err = b.PutEncoded(k, v)
 	r.NoError(err)
@@ -127,8 +131,7 @@ func TestWithCodec(t *testing.T) {
 
 func TestSequence(t *testing.T) {
 	r := require.New(t)
-	bf, err := makeFactory(t, nil)
-	r.NoError(err)
+	bf := makeFactory(t, nil)
 
 	b := bf([]byte("sequence"))
 
@@ -141,8 +144,7 @@ func TestSequence(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 	r := require.New(t)
-	bf, err := makeFactory(t, nil)
-	r.NoError(err)
+	bf := makeFactory(t, nil)
 
 	tt := []struct {
 		k []byte
@@ -176,8 +178,7 @@ func TestGetAll(t *testing.T) {
 
 func TestGetAllDecoded(t *testing.T) {
 	r := require.New(t)
-	bf, err := makeFactory(t, NewCodecJSON())
-	r.NoError(err)
+	bf := makeFactory(t, NewCodecJSON())
 
 	tt := []struct {
 		k []byte
@@ -220,8 +221,7 @@ func TestGetAllDecoded(t *testing.T) {
 
 func TestPrefixScan(t *testing.T) {
 	r := require.New(t)
-	bf, err := makeFactory(t, nil)
-	r.NoError(err)
+	bf := makeFactory(t, nil)
 
 	p1 := []byte("prefix1")
 
@@ -267,8 +267,7 @@ func TestPrefixScan(t *testing.T) {
 
 func TestDeleteReturning(t *testing.T) {
 	r := require.New(t)
-	bf, err := makeFactory(t, NewCodecJSON())
-	r.NoError(err)
+	bf := makeFactory(t, NewCodecJSON())
 
 	tt := []struct {
 		box []byte

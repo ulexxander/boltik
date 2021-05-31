@@ -133,6 +133,9 @@ func (b *Box) GetAllDecoded(out interface{}) error {
 		return ErrNoCodec
 	}
 	data := b.GetAll()
+	if data == nil {
+		return nil
+	}
 	joined := b.codec.Join(data)
 	return b.codec.Unmarshal(joined, out)
 }
