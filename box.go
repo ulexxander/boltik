@@ -89,6 +89,25 @@ func (b *Box) Delete(k []byte) error {
 	})
 }
 
+func (b *Box) DeleteReturning(k []byte) ([]byte, error) {
+	toBeDeleted := b.Get(k)
+	if err := b.Delete(k); err != nil {
+		return nil, err
+	}
+	return toBeDeleted, nil
+}
+
+func (b *Box) DeleteReturningDecoded(k []byte, out interface{}) error {
+	if b.codec == nil {
+		return ErrNoCodec
+	}
+	deleted, err := b.DeleteReturning(k)
+	if err != nil {
+		return err
+	}
+	return b.codec.Unmarshal(deleted, out)
+}
+
 func (b *Box) GetAll() [][]byte {
 	var data [][]byte
 
@@ -110,6 +129,9 @@ func (b *Box) GetAll() [][]byte {
 }
 
 func (b *Box) GetAllDecoded(out interface{}) error {
+	if b.codec == nil {
+		return ErrNoCodec
+	}
 	data := b.GetAll()
 	joined := b.codec.Join(data)
 	return b.codec.Unmarshal(joined, out)
