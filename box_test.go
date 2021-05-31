@@ -80,7 +80,11 @@ func TestNested(t *testing.T) {
 
 	var b *Box
 	for _, item := range tt {
-		b = bf(item.box)
+		if b == nil {
+			b = bf(item.box)
+		} else {
+			b = b.Nested(item.box)
+		}
 
 		ne := b.Get([]byte("not_exists"))
 		r.Nil(ne)
@@ -113,7 +117,8 @@ func TestWithCodec(t *testing.T) {
 
 	var nothing map[string]int
 	err := b.GetDecoded(k, &nothing)
-	r.Error(err)
+	r.Nil(nothing)
+	r.NoError(err)
 
 	var allnothing []map[string]int
 	err = b.GetAllDecoded(&allnothing)

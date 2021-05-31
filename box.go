@@ -55,6 +55,9 @@ func (b *Box) GetDecoded(k []byte, out interface{}) error {
 		return ErrNoCodec
 	}
 	v := b.Get(k)
+	if v == nil {
+		return nil
+	}
 	return b.codec.Unmarshal(v, out)
 }
 
@@ -104,6 +107,9 @@ func (b *Box) DeleteReturningDecoded(k []byte, out interface{}) error {
 	deleted, err := b.DeleteReturning(k)
 	if err != nil {
 		return err
+	}
+	if deleted == nil {
+		return nil
 	}
 	return b.codec.Unmarshal(deleted, out)
 }
