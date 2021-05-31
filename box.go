@@ -10,6 +10,7 @@ import (
 var (
 	ErrNoBucket = errors.New("bucket does not exist")
 	ErrNoCodec  = errors.New("no codec defined")
+	ErrNoItem   = errors.New("item not found")
 )
 
 type Box struct {
@@ -56,7 +57,7 @@ func (b *Box) GetDecoded(k []byte, out interface{}) error {
 	}
 	v := b.Get(k)
 	if v == nil {
-		return nil
+		return ErrNoItem
 	}
 	return b.codec.Unmarshal(v, out)
 }
@@ -109,7 +110,7 @@ func (b *Box) DeleteReturningDecoded(k []byte, out interface{}) error {
 		return err
 	}
 	if deleted == nil {
-		return nil
+		return ErrNoItem
 	}
 	return b.codec.Unmarshal(deleted, out)
 }

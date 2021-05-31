@@ -118,7 +118,7 @@ func TestWithCodec(t *testing.T) {
 	var nothing map[string]int
 	err := b.GetDecoded(k, &nothing)
 	r.Nil(nothing)
-	r.NoError(err)
+	r.ErrorIs(err, ErrNoItem)
 
 	var allnothing []map[string]int
 	err = b.GetAllDecoded(&allnothing)
