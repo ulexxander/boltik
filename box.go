@@ -191,18 +191,13 @@ func (b *Box) Nested(name []byte) *Box {
 	}
 }
 
-func (b *Box) TxBucket(t *bbolt.Tx, createIfNX bool) (*bbolt.Bucket, error) {
-	root := b
-	paths := [][]byte{b.name}
-	for root.parent != nil {
-		root = root.parent
-		paths = append([][]byte{root.name}, paths...)
-	}
+func (b *Box) TxBucket(t *bbolt.Tx, createIfNotExists bool) (*bbolt.Bucket, error) {
+	paths := b.bucketPaths()
 
 	var bkt *bbolt.Bucket
 	var err error
 
-	if createIfNX {
+	if createIfNotExists {
 		bkt, err = t.CreateBucketIfNotExists(paths[0])
 		if err != nil {
 			return nil, err
@@ -212,7 +207,11 @@ func (b *Box) TxBucket(t *bbolt.Tx, createIfNX bool) (*bbolt.Bucket, error) {
 	}
 
 	for _, path := range paths[1:] {
-		if createIfNX {
+		if bkt == nil {
+			return nil, ErrNoBucket
+		}
+
+		if createIfNotExists {
 			bkt, err = bkt.CreateBucketIfNotExists(path)
 			if err != nil {
 				return nil, err
@@ -227,4 +226,15 @@ func (b *Box) TxBucket(t *bbolt.Tx, createIfNX bool) (*bbolt.Bucket, error) {
 	}
 
 	return bkt, nil
+}
+
+func (b *Box) bucketPaths() [][]byte {
+	root := b
+	paths := [][]byte{b.name}
+	for root.parent != nil {
+		root = root.parent
+		paths = append([][]byte{root.name}, paths...)
+	}
+
+	return paths
 }

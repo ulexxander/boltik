@@ -78,29 +78,43 @@ func TestNested(t *testing.T) {
 		},
 	}
 
-	var b *Box
-	for _, item := range tt {
-		if b == nil {
-			b = bf(item.box)
-		} else {
-			b = b.Nested(item.box)
+	{
+		var b *Box
+		for _, item := range tt {
+			if b == nil {
+				b = bf(item.box)
+			} else {
+				b = b.Nested(item.box)
+			}
+
+			ne := b.Get([]byte("not_exists"))
+			r.Nil(ne)
 		}
-
-		ne := b.Get([]byte("not_exists"))
-		r.Nil(ne)
-
-		err := b.Put(item.k, item.v)
-		r.NoError(err)
-
-		gotv := b.Get(item.k)
-		r.Equal(item.v, gotv)
-
-		parentv := b.Get(item.k2)
-		r.Nil(parentv)
-
-		allv := b.GetAll()
-		r.NotContains(allv, parentv)
 	}
+
+	{
+		var b *Box
+		for _, item := range tt {
+			if b == nil {
+				b = bf(item.box)
+			} else {
+				b = b.Nested(item.box)
+			}
+
+			err := b.Put(item.k, item.v)
+			r.NoError(err)
+
+			gotv := b.Get(item.k)
+			r.Equal(item.v, gotv)
+
+			parentv := b.Get(item.k2)
+			r.Nil(parentv)
+
+			allv := b.GetAll()
+			r.NotContains(allv, parentv)
+		}
+	}
+
 }
 
 func TestWithCodec(t *testing.T) {
